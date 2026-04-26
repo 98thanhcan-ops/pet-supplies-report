@@ -895,6 +895,12 @@
       const items = by(detail, key);
       return panel(channel, groupedTable(items, sum(detail,'revenue365'), channel, label), `${items.length} groups`);
     }
+    function topBrandShopPanel(channel) {
+      const detail = filteredDetails(channel);
+      const brand = groupedTable(by(detail, 'brand'), sum(detail, 'revenue365'), channel, 'Brand');
+      const shop = groupedTable(by(detail, 'shop'), sum(detail, 'revenue365'), channel, 'Shop');
+      return panel(channel, `<h3>Top Brand</h3>${brand}<h3 style="margin-top:14px">Top Shop</h3>${shop}`, `${detail.length} products`);
+    }
     function productPanel(channel) {
       const rows = [...filteredDetails(channel)].sort((a,b) => (b.revenue365 || 0) - (a.revenue365 || 0));
       const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th>${sourceHeaders(channel)}</tr></thead>`;
@@ -973,6 +979,7 @@
         comparison('Market Share Theo Category', 'Sheet 1, hiển thị đầy đủ cột + total', overviewTable('Shopee'), overviewTable('TikTok')),
         comparison('Subcategory Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'subcategory', 'Subcategory'), groupedPanel('TikTok', 'subcategory', 'Subcategory')),
         comparison('Loại Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'type', 'Loại'), groupedPanel('TikTok', 'type', 'Loại')),
+        comparison('Top Brand / Top Shop', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', topBrandShopPanel('Shopee'), topBrandShopPanel('TikTok')),
         comparison('SER Quadrant By Loại', 'Noted: data 30 ngày x 12 tháng của top 200 SKU | bấm bubble để xem thông tin', serPanel('Shopee'), serPanel('TikTok')),
         comparison('Loại Deep Dive', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', typeDeepDivePanel('Shopee'), typeDeepDivePanel('TikTok')),
       ].join('');
