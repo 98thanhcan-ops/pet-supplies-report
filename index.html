@@ -277,11 +277,11 @@
       font-size: 12px;
       table-layout: fixed;
     }
-    .table.grouped { min-width: 700px; }
-    .table.grouped.tiktokTable { min-width: 920px; }
-    .table.overview { min-width: 1220px; }
-    .table.product { min-width: 900px; }
-    .table.product.tiktokTable { min-width: 1120px; }
+    .table.grouped { min-width: 800px; }
+    .table.grouped.tiktokTable { min-width: 1020px; }
+    .table.overview { min-width: 1320px; }
+    .table.product { min-width: 1000px; }
+    .table.product.tiktokTable { min-width: 1220px; }
     .tableWrap {
       max-height: 520px;
       overflow: auto;
@@ -531,7 +531,7 @@
     .serInfo {
       margin-top: 10px;
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
     }
     .serInfoCard {
@@ -646,6 +646,7 @@
     const fmtVND = v => compact(v) + ' ₫';
     const fmtNum = v => compact(v);
     const fmtPct = v => ((v || 0) * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + '%';
+    const fmtAsp = (gmv, volume) => fmtVND((gmv || 0) / Math.max(volume || 0, 1));
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const shortMoney = v => {
       const n = v || 0;
@@ -738,6 +739,8 @@
       serPoint.classList.add('selected');
       chart.querySelectorAll('[data-ser-type]').forEach(el => el.textContent = serPoint.dataset.type);
       chart.querySelectorAll('[data-ser-gmv]').forEach(el => el.textContent = serPoint.dataset.gmv);
+      chart.querySelectorAll('[data-ser-volume]').forEach(el => el.textContent = serPoint.dataset.volume);
+      chart.querySelectorAll('[data-ser-asp]').forEach(el => el.textContent = serPoint.dataset.asp);
       chart.querySelectorAll('[data-ser-share]').forEach(el => el.textContent = serPoint.dataset.share);
       chart.querySelectorAll('[data-ser-e]').forEach(el => el.textContent = serPoint.dataset.e);
       chart.querySelectorAll('[data-ser-r]').forEach(el => el.textContent = serPoint.dataset.r);
@@ -826,16 +829,17 @@
           <td>${esc(x.name)}</td>
           <td class="num">${shortMoney(x.revenue365)}</td>
           <td class="num">${fmtNum(x.volume365)}</td>
+          <td class="num">${fmtAsp(x.revenue365, x.volume365)}</td>
           ${sourceCells(x, channel)}
           <td class="barCell"><span>${fmtPct((x.revenue365 || 0) / Math.max(total, 1))}</span><div class="bar"><i style="width:${Math.max(2, (x.revenue365 || 0) / max * 100)}%"></i></div></td>
         </tr>`).join('');
     }
     function groupedTable(items, total, channel, label) {
       const colgroup = channel === 'TikTok'
-        ? '<colgroup><col style="width:200px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:220px"></colgroup>'
-        : '<colgroup><col style="width:240px"><col style="width:115px"><col style="width:115px"><col style="width:230px"></colgroup>';
-      const head = `<thead><tr><th>${label}</th><th class="num">GMV x12</th><th class="num">Volume x12</th>${sourceHeaders(channel)}<th>Share</th></tr></thead>`;
-      const foot = `<tfoot><tr><td>Total</td><td class="num">${shortMoney(total)}</td><td class="num">${fmtNum(sum(items, 'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(items,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'cardRevenue30')*12)}</td>` : ''}<td>100%</td></tr></tfoot>`;
+        ? '<colgroup><col style="width:200px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:220px"></colgroup>'
+        : '<colgroup><col style="width:240px"><col style="width:115px"><col style="width:115px"><col style="width:110px"><col style="width:220px"></colgroup>';
+      const head = `<thead><tr><th>${label}</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th>${sourceHeaders(channel)}<th>Share</th></tr></thead>`;
+      const foot = `<tfoot><tr><td>Total</td><td class="num">${shortMoney(total)}</td><td class="num">${fmtNum(sum(items, 'volume365'))}</td><td class="num">${fmtAsp(total, sum(items, 'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(items,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'cardRevenue30')*12)}</td>` : ''}<td>100%</td></tr></tfoot>`;
       return `<div class="tableWrap"><table class="table grouped ${channel === 'TikTok' ? 'tiktokTable' : 'shopeeTable'}">${colgroup}${head}<tbody>${groupedRows(items, total, channel)}</tbody>${foot}</table></div>`;
     }
     function serRows(channel) {
@@ -885,6 +889,7 @@
           <td class="productName">${productLink(r)}</td>
           <td class="num">${shortMoney(r.revenue365)}</td>
           <td class="num">${fmtNum(r.volume365)}</td>
+          <td class="num">${fmtAsp(r.revenue365, r.volume365)}</td>
           ${sourceCells(r, channel)}
         </tr>`).join('');
     }
@@ -895,14 +900,14 @@
       const body = rows.map(r => `<tr>
         <td>${esc(r.category)}</td><td>${esc(r.Level || 'L2')}</td>
         <td class="barCell"><span>${fmtPct((r.gmv365 || 0) / totalRevenue)}</span><div class="bar"><i style="width:${Math.max(2, (r.gmv365 || 0) / maxRevenue * 100)}%"></i></div></td>
-        <td class="num">${fmtVND(r.gmv365)}</td><td class="num">${fmtNum(r.volume365)}</td>
+        <td class="num">${fmtVND(r.gmv365)}</td><td class="num">${fmtNum(r.volume365)}</td><td class="num">${fmtAsp(r.gmv365, r.volume365)}</td>
         <td class="num">${fmtNum(r.products365)}</td><td class="num">${fmtNum(r.shops365)}</td>
         <td class="num">${fmtPct(r['%Product'])}</td><td class="num">${fmtPct(r['%Volume'])}</td><td class="num">${fmtPct(r['%Revenue'])}</td>
         <td class="num">${(r.E || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</td><td class="num">${(r.R || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</td>
       </tr>`).join('');
-      const foot = `<tfoot><tr><td>Total</td><td>L2</td><td>100%</td><td class="num">${fmtVND(sum(rows,'gmv365'))}</td><td class="num">${fmtNum(sum(rows,'volume365'))}</td><td class="num">${fmtNum(sum(rows,'products365'))}</td><td class="num">${fmtNum(sum(rows,'shops365'))}</td><td colspan="5"></td></tr></tfoot>`;
-      const head = `<thead><tr><th>Category Name</th><th>Level</th><th>Share</th><th class="num">Doanh số</th><th class="num">Lượt bán</th><th class="num">Sản phẩm có lượt bán</th><th class="num">Gian hàng có lượt bán</th><th class="num">%Product</th><th class="num">%Volume</th><th class="num">%Revenue</th><th class="num">E</th><th class="num">R</th></tr></thead>`;
-      const colgroup = '<colgroup><col class="categoryCol"><col class="levelCol"><col class="shareCol"><col class="moneyCol"><col class="metricCol"><col class="metricCol"><col class="metricCol"><col class="percentCol"><col class="percentCol"><col class="percentCol"><col class="erCol"><col class="erCol"></colgroup>';
+      const foot = `<tfoot><tr><td>Total</td><td>L2</td><td>100%</td><td class="num">${fmtVND(sum(rows,'gmv365'))}</td><td class="num">${fmtNum(sum(rows,'volume365'))}</td><td class="num">${fmtAsp(sum(rows,'gmv365'), sum(rows,'volume365'))}</td><td class="num">${fmtNum(sum(rows,'products365'))}</td><td class="num">${fmtNum(sum(rows,'shops365'))}</td><td colspan="5"></td></tr></tfoot>`;
+      const head = `<thead><tr><th>Category Name</th><th>Level</th><th>Share</th><th class="num">GMV</th><th class="num">Volume</th><th class="num">ASP</th><th class="num">Sản phẩm có lượt bán</th><th class="num">Gian hàng có lượt bán</th><th class="num">%Product</th><th class="num">%Volume</th><th class="num">%Revenue</th><th class="num">E</th><th class="num">R</th></tr></thead>`;
+      const colgroup = '<colgroup><col class="categoryCol"><col class="levelCol"><col class="shareCol"><col class="moneyCol"><col class="metricCol"><col class="metricCol"><col class="metricCol"><col class="metricCol"><col class="percentCol"><col class="percentCol"><col class="percentCol"><col class="erCol"><col class="erCol"></colgroup>';
       return panel(channel, `<div class="tableWrap"><table class="table overview">${colgroup}${head}<tbody>${body}</tbody>${foot}</table></div>`, `${rows.length} sheet 1 rows`);
     }
     function kpiPanel(channel) {
@@ -932,12 +937,14 @@
       const points = rows.map(d => {
         const cx = x(d.e), cy = y(d.r), rad = 5 + Math.sqrt((d.revenue || 0) / maxRev) * 22;
         const selected = d === rows[0] ? ' selected' : '';
-        return `<g class="serPoint${selected}" data-type="${esc(d.type)}" data-gmv="${shortMoney(d.revenue365)}" data-share="${fmtPct(d.revenueShare)}" data-e="${d.e.toLocaleString('vi-VN', {maximumFractionDigits: 2})}" data-r="${d.r.toLocaleString('vi-VN', {maximumFractionDigits: 2})}" data-class="${d.classify}" data-products="${fmtNum(d.product)}" data-volume="${fmtNum(d.volume365)}"><circle cx="${cx}" cy="${cy}" r="${rad}" fill="${color(d.classify)}" fill-opacity=".86" stroke="#d7dee8" stroke-width="1.2"><title>${esc(d.type)} | E ${d.e.toFixed(2)} | R ${d.r.toFixed(2)} | ${fmtPct(d.revenueShare)}</title></circle><text x="${cx + rad + 4}" y="${cy - 4}" fill="#d9e2ef" font-size="11" font-weight="700">${esc(d.type)}</text></g>`;
+        return `<g class="serPoint${selected}" data-type="${esc(d.type)}" data-gmv="${shortMoney(d.revenue365)}" data-volume="${fmtNum(d.volume365)}" data-asp="${fmtAsp(d.revenue365, d.volume365)}" data-share="${fmtPct(d.revenueShare)}" data-e="${d.e.toLocaleString('vi-VN', {maximumFractionDigits: 2})}" data-r="${d.r.toLocaleString('vi-VN', {maximumFractionDigits: 2})}" data-class="${d.classify}" data-products="${fmtNum(d.product)}"><circle cx="${cx}" cy="${cy}" r="${rad}" fill="${color(d.classify)}" fill-opacity=".86" stroke="#d7dee8" stroke-width="1.2"><title>${esc(d.type)} | E ${d.e.toFixed(2)} | R ${d.r.toFixed(2)} | ${fmtPct(d.revenueShare)}</title></circle><text x="${cx + rad + 4}" y="${cy - 4}" fill="#d9e2ef" font-size="11" font-weight="700">${esc(d.type)}</text></g>`;
       }).join('');
       const first = rows[0] || { type: 'No data', revenue365: 0, revenueShare: 0, e: 0, r: 0, classify: '-', product: 0, volume365: 0 };
       const floating = `<div class="serFloatingInfo" data-ser-floating>
         <h4 data-ser-type>${esc(first.type)}</h4>
         <div><span>GMV x12</span><strong data-ser-gmv>${shortMoney(first.revenue365)}</strong></div>
+        <div><span>Volume x12</span><strong data-ser-volume>${fmtNum(first.volume365)}</strong></div>
+        <div><span>ASP</span><strong data-ser-asp>${fmtAsp(first.revenue365, first.volume365)}</strong></div>
         <div><span>%DT / Total</span><strong data-ser-share>${fmtPct(first.revenueShare)}</strong></div>
         <div><span>E</span><strong data-ser-e>${first.e.toLocaleString('vi-VN', {maximumFractionDigits: 2})}</strong></div>
         <div><span>R</span><strong data-ser-r>${first.r.toLocaleString('vi-VN', {maximumFractionDigits: 2})}</strong></div>
@@ -946,6 +953,8 @@
       const info = `<div class="serInfo" data-ser-info>
         <div class="serInfoCard"><span>Loại</span><strong data-ser-type>${esc(first.type)}</strong></div>
         <div class="serInfoCard"><span>GMV x12</span><strong data-ser-gmv>${shortMoney(first.revenue365)}</strong></div>
+        <div class="serInfoCard"><span>Volume x12</span><strong data-ser-volume>${fmtNum(first.volume365)}</strong></div>
+        <div class="serInfoCard"><span>ASP</span><strong data-ser-asp>${fmtAsp(first.revenue365, first.volume365)}</strong></div>
         <div class="serInfoCard"><span>%DT / Total</span><strong data-ser-share>${fmtPct(first.revenueShare)}</strong></div>
         <div class="serInfoCard"><span>E</span><strong data-ser-e>${first.e.toLocaleString('vi-VN', {maximumFractionDigits: 2})}</strong></div>
         <div class="serInfoCard"><span>R</span><strong data-ser-r>${first.r.toLocaleString('vi-VN', {maximumFractionDigits: 2})}</strong></div>
@@ -985,8 +994,8 @@
     }
     function productPanel(channel) {
       const rows = [...filteredDetails(channel)].sort((a,b) => (b.revenue365 || 0) - (a.revenue365 || 0));
-      const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th>${sourceHeaders(channel)}</tr></thead>`;
-      const foot = `<tfoot><tr><td>Total visible</td><td class="num">${shortMoney(sum(rows,'revenue365'))}</td><td class="num">${fmtNum(sum(rows,'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(rows,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(rows,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(rows,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
+      const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th>${sourceHeaders(channel)}</tr></thead>`;
+      const foot = `<tfoot><tr><td>Total visible</td><td class="num">${shortMoney(sum(rows,'revenue365'))}</td><td class="num">${fmtNum(sum(rows,'volume365'))}</td><td class="num">${fmtAsp(sum(rows,'revenue365'), sum(rows,'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(rows,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(rows,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(rows,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
       return panel(channel, wrapTable(head, playerRows(rows, channel), foot), `${rows.length} products`);
     }
     function segmentPanel(channel) {
@@ -1008,11 +1017,11 @@
     }
     function productTableForRows(rows, channel) {
       const sorted = [...rows].sort((a,b) => (b.revenue365 || 0) - (a.revenue365 || 0));
-      const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th>${sourceHeaders(channel)}</tr></thead>`;
-      const foot = `<tfoot><tr><td>Total visible</td><td class="num">${shortMoney(sum(sorted,'revenue365'))}</td><td class="num">${fmtNum(sum(sorted,'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(sorted,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
+      const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th>${sourceHeaders(channel)}</tr></thead>`;
+      const foot = `<tfoot><tr><td>Total visible</td><td class="num">${shortMoney(sum(sorted,'revenue365'))}</td><td class="num">${fmtNum(sum(sorted,'volume365'))}</td><td class="num">${fmtAsp(sum(sorted,'revenue365'), sum(sorted,'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(sorted,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
       const colgroup = channel === 'TikTok'
-        ? '<colgroup><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>'
-        : '<colgroup><col style="width:56%"><col style="width:22%"><col style="width:22%"></colgroup>';
+        ? '<colgroup><col style="width:34%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"></colgroup>'
+        : '<colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>';
       return `<div class="tableWrap"><table class="table product ${channel === 'TikTok' ? 'tiktokTable' : 'shopeeTable'}">${colgroup}${head}<tbody>${playerRows(sorted, channel)}</tbody>${foot}</table></div>`;
     }
     function segmentMatrixForRows(rows) {
