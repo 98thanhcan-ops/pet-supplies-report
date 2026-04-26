@@ -484,7 +484,7 @@
       font-size: 12px;
       margin: 0 0 8px 4px;
     }
-    .serPoint { cursor: pointer; }
+    .serPoint { cursor: crosshair; }
     .serPoint.selected circle {
       stroke: #ffffff;
       stroke-width: 3;
@@ -502,6 +502,15 @@
       color: #e5edf7;
       box-shadow: 0 16px 30px rgba(0,0,0,.24);
       pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity .12s ease, transform .12s ease, visibility .12s ease;
+    }
+    .serFloatingInfo.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
     .serFloatingInfo h4 {
       margin: 0 0 8px;
@@ -723,6 +732,30 @@
       updateLabel();
     }
     Object.keys(filterMeta).forEach(initMultiFilter);
+    function updateSerInfo(serPoint) {
+      const chart = serPoint.closest('.serChart');
+      chart.querySelectorAll('.serPoint.selected').forEach(p => p.classList.remove('selected'));
+      serPoint.classList.add('selected');
+      chart.querySelectorAll('[data-ser-type]').forEach(el => el.textContent = serPoint.dataset.type);
+      chart.querySelectorAll('[data-ser-gmv]').forEach(el => el.textContent = serPoint.dataset.gmv);
+      chart.querySelectorAll('[data-ser-share]').forEach(el => el.textContent = serPoint.dataset.share);
+      chart.querySelectorAll('[data-ser-e]').forEach(el => el.textContent = serPoint.dataset.e);
+      chart.querySelectorAll('[data-ser-r]').forEach(el => el.textContent = serPoint.dataset.r);
+      chart.querySelectorAll('[data-ser-class]').forEach(el => el.textContent = serPoint.dataset.class);
+      const floating = chart.querySelector('[data-ser-floating]');
+      if (floating) floating.classList.add('visible');
+    }
+    document.addEventListener('pointerover', e => {
+      const serPoint = e.target.closest('.serPoint');
+      if (serPoint) updateSerInfo(serPoint);
+    });
+    document.addEventListener('pointerout', e => {
+      const chart = e.target.closest('.serChart');
+      if (chart && !chart.contains(e.relatedTarget)) {
+        const floating = chart.querySelector('[data-ser-floating]');
+        if (floating) floating.classList.remove('visible');
+      }
+    });
     document.addEventListener('click', e => {
       if (!e.target.closest('.multiFilter')) document.querySelectorAll('.multiFilter.open').forEach(x => x.classList.remove('open'));
       const summary = e.target.closest('.typeSummary');
@@ -730,17 +763,7 @@
         summary.closest('.typeBlock').classList.toggle('open');
       }
       const serPoint = e.target.closest('.serPoint');
-      if (serPoint) {
-        const chart = serPoint.closest('.serChart');
-        chart.querySelectorAll('.serPoint.selected').forEach(p => p.classList.remove('selected'));
-        serPoint.classList.add('selected');
-        chart.querySelectorAll('[data-ser-type]').forEach(el => el.textContent = serPoint.dataset.type);
-        chart.querySelectorAll('[data-ser-gmv]').forEach(el => el.textContent = serPoint.dataset.gmv);
-        chart.querySelectorAll('[data-ser-share]').forEach(el => el.textContent = serPoint.dataset.share);
-        chart.querySelectorAll('[data-ser-e]').forEach(el => el.textContent = serPoint.dataset.e);
-        chart.querySelectorAll('[data-ser-r]').forEach(el => el.textContent = serPoint.dataset.r);
-        chart.querySelectorAll('[data-ser-class]').forEach(el => el.textContent = serPoint.dataset.class);
-      }
+      if (serPoint) updateSerInfo(serPoint);
     });
     const selected = id => [...(FILTERS[id] || new Set())];
     const matches = (vals, value) => !vals.length || vals.includes(value);
@@ -1043,7 +1066,7 @@
         comparison('Loại Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'type', 'Loại'), groupedPanel('TikTok', 'type', 'Loại')),
         comparison('Price Range Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'priceRange', 'Price Range'), groupedPanel('TikTok', 'priceRange', 'Price Range')),
         comparison('Top Brand / Top Shop', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', topBrandShopPanel('Shopee'), topBrandShopPanel('TikTok')),
-        comparison('SER Quadrant By Loại', 'Noted: data 30 ngày x 12 tháng của top 200 SKU | bấm bubble để xem thông tin', serPanel('Shopee'), serPanel('TikTok')),
+        comparison('SER Quadrant By Loại', 'Noted: data 30 ngày x 12 tháng của top 200 SKU | rê chuột vào bubble để xem thông tin', serPanel('Shopee'), serPanel('TikTok')),
         comparison('Loại Deep Dive', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', typeDeepDivePanel('Shopee'), typeDeepDivePanel('TikTok')),
       ].join('');
     }
