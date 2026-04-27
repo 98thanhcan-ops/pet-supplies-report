@@ -177,12 +177,44 @@
     .comparison {
       margin-bottom: 18px;
     }
+    .reportGroup {
+      border: 1px solid #253147;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 0 0 22px;
+      box-shadow: 0 14px 32px rgba(0,0,0,.32);
+    }
+    .reportGroup.overallGroup {
+      background: #020617;
+      border-color: #334155;
+    }
+    .reportGroup.breakdownGroup {
+      background: #080b14;
+      border-color: #1f3a4a;
+    }
+    .groupTitle {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      margin: 0 0 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #263247;
+    }
+    .groupTitle h2 {
+      margin: 0;
+      font-size: 18px;
+      text-transform: uppercase;
+      color: #f8fafc;
+    }
+    .reportGroup .comparison:last-child { margin-bottom: 0; }
     .comparisonTitle {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
       margin: 18px 0 10px;
     }
+    .reportGroup .comparison:first-child .comparisonTitle { margin-top: 0; }
     .comparisonTitle h2 {
       margin: 0;
       font-size: 17px;
@@ -252,6 +284,12 @@
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
+    }
+    .highlightKpis {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 8px 0 16px;
     }
     .kpi {
       border: 1px solid #344258;
@@ -603,6 +641,7 @@
     @media (max-width: 1100px) {
       .grid2, .filters { grid-template-columns: 1fr; }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .highlightKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .detailGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
@@ -792,6 +831,12 @@
         matches(f.channel, r.channel)
       );
     }
+    function overallOverview(channel) {
+      return DATA.overview.filter(r => r.channel === channel);
+    }
+    function overallDetails(channel) {
+      return DATA.details.filter(r => r.channel === channel);
+    }
     function sum(arr, key) { return arr.reduce((t, r) => t + (r[key] || 0), 0); }
     function wrapTable(head, body, foot='') {
       return `<div class="tableWrap"><table class="table">${head}<tbody>${body}</tbody>${foot}</table></div>`;
@@ -805,6 +850,9 @@
     }
     function comparisonStacked(title, subtitle, left, right) {
       return `<section class="comparison"><div class="comparisonTitle"><h2>${title}</h2><div class="subtitle">${subtitle || ''}</div></div><div class="stackedPanels">${left}${right}</div></section>`;
+    }
+    function reportGroup(kind, title, subtitle, inner) {
+      return `<section class="reportGroup ${kind}Group"><div class="groupTitle"><h2>${title}</h2><div class="subtitle">${subtitle || ''}</div></div>${inner}</section>`;
     }
     function sourceHeaders(channel) {
       return channel === 'TikTok' ? '<th class="num">Live x12</th><th class="num">Aff/Video x12</th><th class="num">Product card x12</th>' : '';
@@ -884,7 +932,7 @@
         </tr>`).join('');
     }
     function overviewTable(channel) {
-      const rows = filteredOverview(channel).sort((a,b) => (b.gmv365 || 0) - (a.gmv365 || 0));
+      const rows = overallOverview(channel).sort((a,b) => (b.gmv365 || 0) - (a.gmv365 || 0));
       const totalRevenue = Math.max(sum(rows, 'gmv365'), 1);
       const maxRevenue = Math.max(...rows.map(r => r.gmv365 || 0), 1);
       const body = rows.map(r => `<tr>
@@ -901,8 +949,8 @@
       return panel(channel, `<div class="tableWrap"><table class="table overview">${colgroup}${head}<tbody>${body}</tbody>${foot}</table></div>`, `${rows.length} sheet 1 rows`);
     }
     function kpiPanel(channel) {
-      const detail = filteredDetails(channel);
-      const overview = filteredOverview(channel);
+      const detail = overallDetails(channel);
+      const overview = overallOverview(channel);
       const totalOverviewRevenue = sum(overview, 'gmv365');
       const totalOverviewVolume = sum(overview, 'volume365');
       const totalProducts = sum(overview, 'products365');
@@ -1056,17 +1104,44 @@
       }).join('');
       return panel(channel, `<div class="typeAccordions">${items || '<div class="small">No data</div>'}</div>`, `${items ? by(rows, 'type').length : 0} loại`);
     }
+    function breakdownHighlights() {
+      const shopee = filteredDetails('Shopee');
+      const tiktok = filteredDetails('TikTok');
+      const rows = [...shopee, ...tiktok];
+      const gmv = sum(rows, 'revenue365');
+      const volume = sum(rows, 'volume365');
+      const shopeeGmv = sum(shopee, 'revenue365');
+      const tiktokGmv = sum(tiktok, 'revenue365');
+      const totalGmv = Math.max(gmv, 1);
+      return `<section class="comparison">
+        <div class="comparisonTitle"><h2>Highlight Number</h2><div class="subtitle">Filtered market breakdown | data 30 ngày x 12 tháng của top 200 SKU</div></div>
+        <div class="highlightKpis">
+          <div class="kpi"><span>GMV x12</span><strong>${shortMoney(gmv)}</strong></div>
+          <div class="kpi"><span>Volume x12</span><strong>${fmtNum(volume)}</strong></div>
+          <div class="kpi"><span>ASP</span><strong>${fmtAsp(gmv, volume)}</strong></div>
+          <div class="kpi"><span>Shopee share</span><strong>${fmtPct(shopeeGmv / totalGmv)}</strong></div>
+          <div class="kpi"><span>TikTok share</span><strong>${fmtPct(tiktokGmv / totalGmv)}</strong></div>
+        </div>
+      </section>`;
+    }
     function render() {
       const report = document.getElementById('report');
-      report.innerHTML = [
+      const overall = [
         comparison('GMV / Volume / Gian hàng / Sản phẩm có lượt bán', 'Noted: data T4-2025 to T4-2026', kpiPanel('Shopee'), kpiPanel('TikTok')),
         comparisonStacked('Market Share Theo Category', 'Sheet 1, hiển thị đầy đủ cột + total', overviewTable('Shopee'), overviewTable('TikTok')),
+      ].join('');
+      const breakdown = [
+        breakdownHighlights(),
         comparison('Subcategory Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'subcategory', 'Subcategory'), groupedPanel('TikTok', 'subcategory', 'Subcategory')),
         comparison('Loại Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'type', 'Loại'), groupedPanel('TikTok', 'type', 'Loại')),
         comparison('Price Range Breakdown', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', groupedPanel('Shopee', 'priceRange', 'Price Range'), groupedPanel('TikTok', 'priceRange', 'Price Range')),
         comparison('Top Brand / Top Shop', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', topBrandShopPanel('Shopee'), topBrandShopPanel('TikTok')),
         comparison('SER Quadrant By Loại', 'Noted: data 30 ngày x 12 tháng của top 200 SKU | rê chuột vào bubble để xem thông tin', serPanel('Shopee'), serPanel('TikTok')),
         comparison('Loại Deep Dive', 'Noted: data 30 ngày x 12 tháng của top 200 SKU', typeDeepDivePanel('Shopee'), typeDeepDivePanel('TikTok')),
+      ].join('');
+      report.innerHTML = [
+        reportGroup('overall', 'Overall Market', 'Sheet 1, data thị trường lớn, không thay đổi theo filter', overall),
+        reportGroup('breakdown', 'Market Breakdown', 'Product detail 30 ngày annualized x12, chạy theo filter bên trên', breakdown),
       ].join('');
     }
     render();
