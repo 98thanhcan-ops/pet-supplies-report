@@ -617,8 +617,6 @@
       <div class="subtitle">SER: E = %Volume/%Product, R = %Revenue/%Product</div>
     </div>
     <div class="filters">
-      <div class="filterLabel">Category L1<div class="multiFilter" id="filterL1"></div></div>
-      <div class="filterLabel">Category L2<div class="multiFilter" id="filterL2"></div></div>
       <div class="filterLabel">Kênh bán<div class="multiFilter" id="filterChannel"></div></div>
       <div class="filterLabel">Brand<div class="multiFilter" id="filterBrand"></div></div>
       <div class="filterLabel">Subcategory<div class="multiFilter" id="filterSubcategory"></div></div>
@@ -674,8 +672,6 @@
     const brandGroups = rows => by(rows, 'brand').filter(x => isKnownBrand(x.name));
     const FILTERS = {};
     const filterMeta = {
-      filterL1: { values: DATA.filters.categoryL1, all: 'All category L1', search: 'Tìm category L1...' },
-      filterL2: { values: DATA.filters.categoryL2, all: 'All category L2', search: 'Tìm category L2...' },
       filterChannel: { values: DATA.filters.channels, all: 'All channels', search: 'Tìm kênh...' },
       filterBrand: { values: DATA.filters.brands, all: 'All brands', search: 'Tìm brand...' },
       filterSubcategory: { values: DATA.filters.subcategories, all: 'All subcategories', search: 'Tìm subcategory...' },
@@ -773,8 +769,6 @@
 
     function activeFilters() {
       return {
-        l1: selected('filterL1'),
-        l2: selected('filterL2'),
         channel: selected('filterChannel'),
         brand: selected('filterBrand'),
         subcategory: selected('filterSubcategory'),
@@ -786,8 +780,6 @@
       return DATA.details.filter(r =>
         r.channel === channel &&
         matches(f.channel, r.channel) &&
-        matches(f.l1, r.categoryL1) &&
-        matches(f.l2, r.categoryL2) &&
         matches(f.brand, r.brand) &&
         matches(f.subcategory, r.subcategory) &&
         matches(f.type, r.type)
@@ -797,9 +789,7 @@
       const f = activeFilters();
       return DATA.overview.filter(r =>
         r.channel === channel &&
-        matches(f.channel, r.channel) &&
-        matches(f.l1, r['Category L1']) &&
-        matches(f.l2, r.category)
+        matches(f.channel, r.channel)
       );
     }
     function sum(arr, key) { return arr.reduce((t, r) => t + (r[key] || 0), 0); }
