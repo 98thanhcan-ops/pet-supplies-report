@@ -313,14 +313,33 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
-      table-layout: fixed;
+      table-layout: auto;
     }
-    .table.grouped { min-width: 800px; }
-    .table.grouped.tiktokTable { min-width: 1020px; }
-    .table.overview { min-width: 1320px; }
-    .table.typeShare { min-width: 920px; }
-    .table.product { min-width: 1000px; }
-    .table.product.tiktokTable { min-width: 1220px; }
+    .table.grouped { min-width: max(680px, 100%); }
+    .table.grouped.tiktokTable { min-width: max(900px, 100%); }
+    .table.overview { min-width: max(1120px, 100%); }
+    .table.typeShare { min-width: max(780px, 100%); }
+    .table.product { min-width: max(860px, 100%); }
+    .table.product.tiktokTable { min-width: max(1040px, 100%); }
+    .tableDownloadWrap {
+      display: grid;
+      gap: 6px;
+    }
+    .downloadBtn {
+      justify-self: end;
+      border: 1px solid #344258;
+      border-radius: 6px;
+      background: #111827;
+      color: #dbeafe;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 9px;
+      cursor: pointer;
+    }
+    .downloadBtn:hover {
+      border-color: #60a5fa;
+      color: #ffffff;
+    }
     .tableWrap {
       max-height: 520px;
       overflow: auto;
@@ -347,6 +366,22 @@
     }
     .table th,
     .table td { overflow: visible; }
+    .table th:first-child,
+    .table td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: #0b1220;
+      box-shadow: 1px 0 0 #2b3547;
+    }
+    .table thead th:first-child {
+      z-index: 5;
+      background: #111827;
+    }
+    .table tfoot td:first-child {
+      z-index: 4;
+      background: #151f31;
+    }
     .table tr:last-child td { border-bottom: 0; }
     .table tfoot td {
       position: sticky;
@@ -368,8 +403,8 @@
     .table thead th.num,
     .table tbody td.num,
     .table tfoot td.num {
-      padding-left: 10px;
-      padding-right: 10px;
+      padding-left: 8px;
+      padding-right: 8px;
     }
     .barCell {
       display: block;
@@ -393,13 +428,13 @@
     .table.grouped col.volumeCol { width: 14%; }
     .table.grouped col.sourceCol { width: 11%; }
     .table.grouped col.shareCol { width: 38%; }
-    .table.overview col.categoryCol { width: 175px; }
-    .table.overview col.levelCol { width: 60px; }
-    .table.overview col.shareCol { width: 170px; }
-    .table.overview col.moneyCol { width: 135px; }
-    .table.overview col.metricCol { width: 120px; }
-    .table.overview col.percentCol { width: 86px; }
-    .table.overview col.erCol { width: 55px; }
+    .table.overview col.categoryCol { width: 170px; }
+    .table.overview col.levelCol { width: 52px; }
+    .table.overview col.shareCol { width: 72px; }
+    .table.overview col.moneyCol { width: 106px; }
+    .table.overview col.metricCol { width: 92px; }
+    .table.overview col.percentCol { width: 72px; }
+    .table.overview col.erCol { width: 44px; }
     .table.product col.productCol { width: 50%; }
     .table.product col.moneyCol { width: 14%; }
     .table.product col.volumeCol { width: 14%; }
@@ -468,8 +503,6 @@
     }
     .segmentTable th:first-child,
     .segmentTable td:first-child {
-      position: sticky;
-      left: 0;
       z-index: 3;
       background: #111827;
       width: 150px;
@@ -815,6 +848,57 @@
         type: selected('filterType')
       };
     }
+    const slug = value => String(value || 'report')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'report';
+    function tableTitle(table) {
+      const panel = table.closest('.panel');
+      const section = table.closest('.comparison');
+      const market = panel?.querySelector('.panelHead h3')?.textContent?.trim();
+      const sectionTitle = section?.querySelector('.comparisonTitle h2')?.textContent?.trim();
+      const localTitle = table.closest('.panelBody')?.querySelector('h3')?.textContent?.trim();
+      return [sectionTitle, market, localTitle].filter(Boolean).join(' - ') || 'report-table';
+    }
+    function tableToCsv(table) {
+      const rows = [...table.querySelectorAll('tr')].map(row => [...row.children].map(cell => {
+        const text = cell.innerText.replace(/\s+/g, ' ').trim();
+        return `"${text.replace(/"/g, '""')}"`;
+      }).join(','));
+      return '\ufeff' + rows.join('\n');
+    }
+    function downloadTable(table) {
+      const title = tableTitle(table);
+      const blob = new Blob([tableToCsv(table)], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${slug(title)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+    function attachDownloadButtons() {
+      document.querySelectorAll('.tableWrap, .segmentWrap').forEach((wrap, idx) => {
+        if (wrap.parentElement?.classList.contains('tableDownloadWrap')) return;
+        const table = wrap.querySelector('table');
+        if (!table) return;
+        const outer = document.createElement('div');
+        outer.className = 'tableDownloadWrap';
+        const button = document.createElement('button');
+        button.className = 'downloadBtn';
+        button.type = 'button';
+        button.textContent = 'Tải data';
+        button.dataset.downloadTable = String(idx);
+        wrap.replaceWith(outer);
+        outer.appendChild(button);
+        outer.appendChild(wrap);
+        button.addEventListener('click', () => downloadTable(table));
+      });
+    }
     function filteredDetails(channel) {
       const f = activeFilters();
       return DATA.details.filter(r =>
@@ -875,8 +959,8 @@
     }
     function groupedTable(items, total, channel, label) {
       const colgroup = channel === 'TikTok'
-        ? '<colgroup><col style="width:210px"><col style="width:90px"><col style="width:105px"><col style="width:105px"><col style="width:105px"><col style="width:105px"><col style="width:105px"><col style="width:105px"></colgroup>'
-        : '<colgroup><col style="width:260px"><col style="width:90px"><col style="width:120px"><col style="width:120px"><col style="width:110px"></colgroup>';
+        ? '<colgroup><col style="width:190px"><col style="width:68px"><col style="width:92px"><col style="width:88px"><col style="width:86px"><col style="width:88px"><col style="width:96px"><col style="width:96px"></colgroup>'
+        : '<colgroup><col style="width:220px"><col style="width:68px"><col style="width:96px"><col style="width:88px"><col style="width:86px"></colgroup>';
       const head = `<thead><tr><th>${label}</th><th>Share</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th>${sourceHeaders(channel)}</tr></thead>`;
       const foot = `<tfoot><tr><td>Total</td><td>100%</td><td class="num">${shortMoney(total)}</td><td class="num">${fmtNum(sum(items, 'volume365'))}</td><td class="num">${fmtAsp(total, sum(items, 'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(items,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(items,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
       return `<div class="tableWrap"><table class="table grouped ${channel === 'TikTok' ? 'tiktokTable' : 'shopeeTable'}">${colgroup}${head}<tbody>${groupedRows(items, total, channel)}</tbody>${foot}</table></div>`;
@@ -1060,8 +1144,8 @@
       const head = `<thead><tr><th>Product</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th>${sourceHeaders(channel)}</tr></thead>`;
       const foot = `<tfoot><tr><td>Total visible</td><td class="num">${shortMoney(sum(sorted,'revenue365'))}</td><td class="num">${fmtNum(sum(sorted,'volume365'))}</td><td class="num">${fmtAsp(sum(sorted,'revenue365'), sum(sorted,'volume365'))}</td>${channel === 'TikTok' ? `<td class="num">${shortMoney(sum(sorted,'liveRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'videoRevenue30')*12)}</td><td class="num">${shortMoney(sum(sorted,'cardRevenue30')*12)}</td>` : ''}</tr></tfoot>`;
       const colgroup = channel === 'TikTok'
-        ? '<colgroup><col style="width:34%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"></colgroup>'
-        : '<colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>';
+        ? '<colgroup><col style="width:380px"><col style="width:92px"><col style="width:88px"><col style="width:86px"><col style="width:88px"><col style="width:96px"><col style="width:96px"></colgroup>'
+        : '<colgroup><col style="width:440px"><col style="width:120px"><col style="width:110px"><col style="width:100px"></colgroup>';
       return `<div class="tableWrap"><table class="table product ${channel === 'TikTok' ? 'tiktokTable' : 'shopeeTable'}">${colgroup}${head}<tbody>${playerRows(sorted, channel)}</tbody>${foot}</table></div>`;
     }
     function segmentMatrixForRows(rows) {
@@ -1158,7 +1242,7 @@
       const head = '<thead><tr><th>Subcategory</th><th>Share</th><th>Product Type</th><th class="num">GMV x12</th><th class="num">Volume x12</th><th class="num">ASP</th><th class="num">Products</th></tr></thead>';
       return `<section class="comparison">
         <div class="comparisonTitle"><h2>% Share Product Type Trong Subcategory</h2><div class="subtitle">Share = GMV product type / total GMV subcategory, đã sum Shopee + TikTok</div></div>
-        <div class="tableWrap"><table class="table typeShare"><colgroup><col style="width:240px"><col style="width:90px"><col style="width:190px"><col style="width:120px"><col style="width:120px"><col style="width:110px"><col style="width:90px"></colgroup>${head}<tbody>${body}</tbody></table></div>
+        <div class="tableWrap"><table class="table typeShare"><colgroup><col style="width:210px"><col style="width:68px"><col style="width:170px"><col style="width:96px"><col style="width:88px"><col style="width:86px"><col style="width:76px"></colgroup>${head}<tbody>${body}</tbody></table></div>
       </section>`;
     }
     function render() {
@@ -1181,6 +1265,7 @@
         reportGroup('overall', 'Overall Market', 'Sheet 1, data thị trường lớn, không thay đổi theo filter', overall),
         reportGroup('breakdown', 'Market Breakdown', 'Product detail 30 ngày annualized x12, chạy theo filter bên trên', breakdown),
       ].join('');
+      attachDownloadButtons();
     }
     render();
   </script>
