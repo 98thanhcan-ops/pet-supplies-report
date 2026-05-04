@@ -1159,6 +1159,21 @@
       const head = `<thead><tr><th>Subcategory</th>${ranges.map(r => `<th>${esc(r)}</th>`).join('')}</tr></thead>`;
       return `<div class="segmentWrap"><table class="table segmentTable">${head}<tbody>${body}</tbody></table></div>`;
     }
+    function brandPriceProductMatrixForRows(rows) {
+      const brands = brandGroups(rows).slice(0, 5).map(x => x.name);
+      const ranges = [...new Set(rows.map(r => r.priceRange).filter(Boolean))].sort((a,b) => ['<50k','50k-100k','100k-200k','200k-500k','>500k'].indexOf(a) - ['<50k','50k-100k','100k-200k','200k-500k','>500k'].indexOf(b));
+      const cell = (brand, range) => rows
+        .filter(r => r.brand === brand && r.priceRange === range)
+        .sort((a,b) => (b.revenue365 || 0) - (a.revenue365 || 0))
+        .slice(0, 3)
+        .map(r => {
+          const img = esc(r.imageUrl || '');
+          return `<div class="miniProduct">${img ? `<img src="${img}" loading="lazy" alt="">` : '<div></div>'}<div><a href="${esc(r.url || '#')}" target="_blank" rel="noopener" title="${esc(r.product)}">${esc(r.product)}</a><div class="small">${shortMoney(r.revenue365)} | ${esc(r.priceText || r.priceRange)}</div></div></div>`;
+        }).join('') || '<span class="small">No product</span>';
+      const body = brands.map(brand => `<tr><td>${esc(brand)}</td>${ranges.map(range => `<td>${cell(brand, range)}</td>`).join('')}</tr>`).join('');
+      const head = `<thead><tr><th>Brand</th>${ranges.map(r => `<th>${esc(r)}</th>`).join('')}</tr></thead>`;
+      return `<div class="segmentWrap"><table class="table segmentTable brandProductMatrix">${head}<tbody>${body || '<tr><td colspan="' + Math.max(ranges.length + 1, 1) + '"><span class="small">No data</span></td></tr>'}</tbody></table></div>`;
+    }
     function typeDeepDivePanel(channel) {
       const rows = filteredDetails(channel);
       const totalRevenue = Math.max(sum(rows, 'revenue365'), 1);
@@ -1185,6 +1200,7 @@
             <h3>Product</h3>${productTableForRows(typeRows, channel)}
             <h3>Price Range Breakdown</h3>${groupedTableForRows(typeRows, 'priceRange', 'Price Range', channel)}
             <h3>Product Segment Matrix</h3>${segmentMatrixForRows(typeRows)}
+            <h3>Top Brand x Price Range</h3>${brandPriceProductMatrixForRows(typeRows)}
           </div>
         </div>`;
       }).join('');
